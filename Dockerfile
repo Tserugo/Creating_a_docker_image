@@ -1,6 +1,11 @@
 # Download base image ubuntu 18.04
 FROM ubuntu:18.04
 
+# LABEL about the custom image
+LABEL maintainer="Kate Markelova"
+LABEL maintainer.email="markelova.ke@gmail.com"
+
+# ENV variables
 ENV SOFT='/soft'
 ENV SAMTOOLS='/soft/samtools-1.15.1'
 ENV HTSLIB='/soft/htslib-1.15.1'
@@ -8,9 +13,6 @@ ENV LIBDEFLATE='/soft/libdeflate-1.12'
 ENV LIBMAUS2='/soft/libmaus2-2.0.810-release-20220216151520'
 ENV BIOBAMBAM2='/soft/biobambam2-2.0.180-release-20210315231707'
 
-# LABEL about the custom image
-LABEL maintainer="Kate Markelova"
-LABEL maintainer.email="markelova.ke@gmail.com"
 
 # Disable Prompt During Packages Installation
 ARG DEBIAN_FRONTEND=noninteractive
@@ -23,6 +25,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libbz2-dev \
     liblzma-dev \
     libcurl4-gnutls-dev \
+    zlibc \
+    zlib1g \
     zlib1g-dev \
     libssl-dev \
     gcc \
@@ -36,8 +40,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3 \
     autoconf \
     automake \
-    apt-utils && \
-    rm -rf /var/lib/apt/lists/* && apt-get autoclean
+    apt-utils \
+    pkg-config \
+    libtool && \
+    apt-get clean && apt-get purge && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR $SOFT
 
@@ -89,5 +96,7 @@ RUN wget https://gitlab.com/german.tischler/biobambam2/-/archive/2.0.180-release
     ./configure --with-libmaus2=$LIBMAUS2 \
 	--prefix=$BIOBAMBAM2 && \
     make install
+
+ENV PATH=${PATH}:$HTSLIB:$SAMTOOLS:$LIBDEFLATE:$LIBMAUS2:$BIOBAMBAM2:$SOFT
 
 CMD ["bash"]
