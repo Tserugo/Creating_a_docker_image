@@ -2,9 +2,11 @@
 FROM ubuntu:18.04
 
 ENV SOFT='/soft'
-ENV SAMTOOLS='/soft/samtools-${SAMTOOLSVER}'
-ENV HTSLIB='/soft/htslib-${HTSLIBVER}'
-ENV LIBDEFLATE='/soft/libdeflate-${LIBDEFLATEVER}'
+ENV SAMTOOLS='/soft/samtools-1.15.1'
+ENV HTSLIB='/soft/htslib-1.15.1'
+ENV LIBDEFLATE='/soft/libdeflate-1.12'
+ENV LIBMAUS2='/soft/libmaus2-2.0.810-release-20220216151520'
+ENV BIOBAMBAM2='/soft/biobambam2-2.0.180-release-20210315231707'
 
 # LABEL about the custom image
 LABEL maintainer="Kate Markelova"
@@ -17,24 +19,25 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y python3-pip
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
- libncurses5-dev \
- libbz2-dev \
- liblzma-dev \
- libcurl4-gnutls-dev \
- zlib1g-dev \
- libssl-dev \
- gcc \
- wget \
- make \
- perl \
- bzip2 \
- gnuplot \
- ca-certificates \
- gawk \
- python3 \
- autoconf \
- automake && \
- rm -rf /var/lib/apt/lists/* && apt-get autoclean
+    libncurses5-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libcurl4-gnutls-dev \
+    zlib1g-dev \
+    libssl-dev \
+    gcc \
+    wget \
+    make \
+    perl \
+    bzip2 \
+    gnuplot \
+    ca-certificates \
+    gawk \
+    python3 \
+    autoconf \
+    automake \
+    apt-utils && \
+    rm -rf /var/lib/apt/lists/* && apt-get autoclean
 
 WORKDIR $SOFT
 
@@ -66,5 +69,25 @@ RUN wget https://github.com/ebiggers/libdeflate/archive/refs/tags/v1.12.tar.gz &
     cd libdeflate-1.12 && \
     make && \
     make DESTDIR=$LIBDEFLATE install
+
+# biobambam2 needs libmaus2
+# libmaus2-2.0.810 released this on 16 Feb 2022
+RUN wget https://gitlab.com/german.tischler/libmaus2/-/archive/2.0.810-release-20220216151520/libmaus2-2.0.810-release-20220216151520.tar.gz && \
+    tar xvzf libmaus2-2.0.810-release-20220216151520.tar.gz && \
+    rm libmaus2-2.0.810-release-20220216151520.tar.gz && \
+    cd libmaus2-2.0.810-release-20220216151520 && \
+    ./configure --prefix=$LIBMAUS2 && \
+    make && \
+    make install
+
+# biobambam2-2.0.180 released this on 18 Mar 2021
+RUN wget https://gitlab.com/german.tischler/biobambam2/-/archive/2.0.180-release-20210315231707/biobambam2-2.0.180-release-20210315231707.tar.gz && \
+    tar xvzf biobambam2-2.0.180-release-20210315231707.tar.gz && \
+    rm biobambam2-2.0.180-release-20210315231707.tar.gz && \
+    cd biobambam2-2.0.180-release-20210315231707/ && \
+    autoreconf -i -f && \
+    ./configure --with-libmaus2=$LIBMAUS2 \
+	--prefix=$BIOBAMBAM2 && \
+    make install
 
 CMD ["bash"]
