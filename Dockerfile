@@ -19,15 +19,16 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # install dependencies, cleanup apt garbage
 RUN apt-get update && apt-get install -y python3-pip
-
 RUN apt-get update && apt-get install --no-install-recommends -y \
     libncurses5-dev \
     libbz2-dev \
     liblzma-dev \
+    libboost-dev \
     libcurl4-gnutls-dev \
     zlibc \
     zlib1g \
     zlib1g-dev \
+    apt-utils \
     libssl-dev \
     gcc \
     wget \
@@ -40,24 +41,23 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3 \
     autoconf \
     automake \
-    apt-utils \
     pkg-config \
-    libtool && \
+    libtool \
+    build-essential \
+    software-properties-common && \
     apt-get clean && apt-get purge && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-WORKDIR $SOFT
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test
+RUN apt-get install -y gcc-9 g++-9
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9
 
-# samtools-1.15.1 released on 7 Apr 2022
-RUN wget https://github.com/samtools/samtools/releases/download/1.15.1/samtools-1.15.1.tar.bz2 && \
-    tar jxf samtools-1.15.1.tar.bz2 && \
-    rm samtools-1.15.1.tar.bz2 && \
-    cd samtools-1.15.1 && \
-    autoheader && \
-    autoconf -Wno-syntax && \
-    ./configure --prefix $SAMTOOLS && \
-    make && \
-    make install
+# update gcc for libmaus2
+# RUN echo 'deb http://deb.debian.org/debian testing main' >> /etc/apt/sources.list
+# RUN apt update -y
+# RUN apt install -y gcc
+
+WORKDIR $SOFT
 
 # htslib-1.15.1 released on 7 Apr 2022
 RUN wget https://github.com/samtools/htslib/releases/download/1.15.1/htslib-1.15.1.tar.bz2 && \
@@ -77,7 +77,17 @@ RUN wget https://github.com/ebiggers/libdeflate/archive/refs/tags/v1.12.tar.gz &
     make && \
     make DESTDIR=$LIBDEFLATE install
 
-# biobambam2 needs libmaus2
+# samtools-1.15.1 released on 7 Apr 2022
+RUN wget https://github.com/samtools/samtools/releases/download/1.15.1/samtools-1.15.1.tar.bz2 && \
+    tar jxf samtools-1.15.1.tar.bz2 && \
+    rm samtools-1.15.1.tar.bz2 && \
+    cd samtools-1.15.1 && \
+    autoheader && \
+    autoconf -Wno-syntax && \
+    ./configure --prefix $SAMTOOLS && \
+    make && \
+    make install
+
 # libmaus2-2.0.810 released this on 16 Feb 2022
 RUN wget https://gitlab.com/german.tischler/libmaus2/-/archive/2.0.810-release-20220216151520/libmaus2-2.0.810-release-20220216151520.tar.gz && \
     tar xvzf libmaus2-2.0.810-release-20220216151520.tar.gz && \
@@ -94,7 +104,7 @@ RUN wget https://gitlab.com/german.tischler/biobambam2/-/archive/2.0.180-release
     cd biobambam2-2.0.180-release-20210315231707/ && \
     autoreconf -i -f && \
     ./configure --with-libmaus2=$LIBMAUS2 \
-	--prefix=$BIOBAMBAM2 && \
+	    --prefix=$BIOBAMBAM2 && \
     make install
 
 ENV PATH=${PATH}:$HTSLIB:$SAMTOOLS:$LIBDEFLATE:$LIBMAUS2:$BIOBAMBAM2:$SOFT
